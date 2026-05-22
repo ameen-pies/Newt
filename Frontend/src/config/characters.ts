@@ -25,13 +25,17 @@ export const CHARACTERS: CharacterConfig[] = [
       eyeColor: "#818cf8",
     },
   },
+  {
+    id: "vroid-avatar",
+    name: "VRoid Avatar",
+    type: "gltf",
+    modelPath: "/models/characters/vroid-avatar.glb",
+    scale: 0.8,
+    position: [0, 0.8, 0],
+    description: "Imported VRoid model",
+  },
   // ─────────────────────────────────────────────────
-  // ★ Add your custom 3D character models below:
-  //
-  // 1. Place your .glb/.gltf file in:
-  //      public/models/characters/<your-model>.glb
-  //
-  // 2. Add an entry like this:
+  // ★ Add more custom characters below:
   // {
   //   id: "my-character",
   //   name: "My Character",
@@ -39,7 +43,7 @@ export const CHARACTERS: CharacterConfig[] = [
   //   modelPath: "/models/characters/my-character.glb",
   //   scale: 0.8,
   //   position: [0, 0.8, 0],
-  //   description: "My custom 3D character",
+  //   description: "Description",
   // },
   // ─────────────────────────────────────────────────
 ];

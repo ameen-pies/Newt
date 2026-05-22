@@ -51,19 +51,21 @@ export const ROOMS: RoomConfig[] = [
       fog: "#0d0805",
     },
   },
+  {
+    id: "livingroom",
+    name: "Living Room",
+    type: "gltf",
+    modelPath: "/models/rooms/livingroom.glb",
+    description: "Wabisabi living room",
+  },
   // ─────────────────────────────────────────────────
-  // ★ Add your custom 3D room models below:
-  //
-  // 1. Place your .glb/.gltf file in:
-  //      public/models/rooms/<your-room>.glb
-  //
-  // 2. Add an entry like this:
+  // ★ Add more custom rooms below:
   // {
   //   id: "my-room",
   //   name: "My Room",
   //   type: "gltf",
   //   modelPath: "/models/rooms/my-room.glb",
-  //   description: "My custom 3D room",
+  //   description: "Description",
   // },
   // ─────────────────────────────────────────────────
 ];
