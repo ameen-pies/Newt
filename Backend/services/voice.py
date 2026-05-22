@@ -32,13 +32,14 @@ class VoiceService:
             "text": text,
             "engine": self.engine,
             "instruct": self.instruct,
+            "profile_id": self.profile_id,
         }
-        if self.profile_id:
-            payload["profile_id"] = self.profile_id
 
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(f"{self.base_url}/generate", json=payload)
-            resp.raise_for_status()
+            if resp.is_error:
+                detail = resp.text
+                resp.raise_for_status()
             return resp.content
 
     async def list_profiles(self) -> list:

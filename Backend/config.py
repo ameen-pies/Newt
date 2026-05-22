@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # Voicebox TTS
     voicebox_url: str = "http://host.docker.internal:17493"
     voicebox_profile_id: str = "f448fd55-20f6-4c51-82f3-baf5cde869df"
-    voicebox_engine: str = "qwen_custom_voice"
+    voicebox_engine: str = "qwen"
     voicebox_instruct: str = "warm, slow, cinematic"
 
     # Qdrant
