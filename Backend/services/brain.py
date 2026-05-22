@@ -5,6 +5,7 @@ Handles probabilistic action selection and the curiosity engine.
 
 import random
 import time
+import asyncio
 from typing import Optional, TypedDict
 from langgraph.graph import StateGraph, END
 from langchain_openai import ChatOpenAI
@@ -118,11 +119,21 @@ class BrainService:
         if state.get("user_input"):
             messages.append(HumanMessage(content=state["user_input"]))
 
-        try:
-            result = self.llm.invoke(messages)
-            response = result.content
-        except Exception as e:
-            response = f"[Brain error: {str(e)[:100]}]"
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                result = self.llm.invoke(messages)
+                response = result.content
+                break
+            except Exception as e:
+                err_str = str(e)
+                if "429" in err_str and attempt < max_retries - 1:
+                    wait = 2 ** attempt
+                    print(f"[Brain retry] 429 rate limited, retrying in {wait}s (attempt {attempt + 1}/{max_retries})")
+                    await asyncio.sleep(wait)
+                    continue
+                response = f"[Brain error: {err_str[:100]}]"
+                break
 
         emotion = self._detect_emotion(response)
         return {"response": response, "emotion": emotion}

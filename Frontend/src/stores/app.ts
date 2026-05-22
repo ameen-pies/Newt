@@ -24,12 +24,25 @@ export interface AvatarConfig {
   outfit: string;
 }
 
+export interface ClonedVoice {
+  id: string;
+  name: string;
+  filePath: string;
+}
+
 interface AppState {
   // Setup
   isSetup: boolean;
   avatar: AvatarConfig;
   voicePersona: string;
   roomStyle: string;
+
+  // Modular asset selections
+  characterId: string;
+  roomModelId: string;
+
+  // Custom cloned voices
+  customVoices: ClonedVoice[];
 
   // Chat
   messages: ChatMessage[];
@@ -46,13 +59,22 @@ interface AppState {
   wsConnected: boolean;
 
   // Actions
-  setSetup: (avatar: AvatarConfig, voice: string, room: string) => void;
+  setSetup: (
+    avatar: AvatarConfig,
+    voice: string,
+    room: string,
+    characterId?: string,
+    roomModelId?: string
+  ) => void;
   addMessage: (msg: ChatMessage) => void;
   setThinking: (v: boolean) => void;
   setCognitiveState: (state: CognitiveState) => void;
   setListening: (v: boolean) => void;
   setScreenSharing: (v: boolean) => void;
   setWsConnected: (v: boolean) => void;
+  addCustomVoice: (voice: ClonedVoice) => void;
+  setCharacterId: (id: string) => void;
+  setRoomModelId: (id: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -66,6 +88,9 @@ export const useAppStore = create<AppState>((set) => ({
   },
   voicePersona: "dynamic",
   roomStyle: "cyberpunk",
+  characterId: "newt-default",
+  roomModelId: "cyberpunk",
+  customVoices: [],
   messages: [],
   isThinking: false,
   cognitiveState: {
@@ -79,8 +104,15 @@ export const useAppStore = create<AppState>((set) => ({
   isScreenSharing: false,
   wsConnected: false,
 
-  setSetup: (avatar, voice, room) =>
-    set({ isSetup: true, avatar, voicePersona: voice, roomStyle: room }),
+  setSetup: (avatar, voice, room, characterId, roomModelId) =>
+    set({
+      isSetup: true,
+      avatar,
+      voicePersona: voice,
+      roomStyle: room,
+      characterId: characterId ?? "newt-default",
+      roomModelId: roomModelId ?? "cyberpunk",
+    }),
 
   addMessage: (msg) =>
     set((state) => ({ messages: [...state.messages, msg] })),
@@ -90,4 +122,8 @@ export const useAppStore = create<AppState>((set) => ({
   setListening: (v) => set({ isListening: v }),
   setScreenSharing: (v) => set({ isScreenSharing: v }),
   setWsConnected: (v) => set({ wsConnected: v }),
+  addCustomVoice: (voice) =>
+    set((state) => ({ customVoices: [...state.customVoices, voice] })),
+  setCharacterId: (id) => set({ characterId: id }),
+  setRoomModelId: (id) => set({ roomModelId: id }),
 }));
