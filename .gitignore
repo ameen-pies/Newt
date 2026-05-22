@@ -1,0 +1,69 @@
+# ==============================
+# Environment & Secrets
+# ==============================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ==============================
+# Python
+# ==============================
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.log
+
+# ==============================
+# Node / Frontend
+# ==============================
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+
+# ==============================
+# IDE
+# ==============================
+.vscode/
+.idea/
+.openclaude/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ==============================
+# Docker
+# ==============================
+docker-compose.override.yml
+
+# ==============================
+# Sandbox generated tools
+# ==============================
+Backend/sandbox/*
+!Backend/sandbox/.gitkeep
+
+# ==============================
+# Don't ignore
+# ==============================
+!.env.example
+!.gitkeep
+!docs/
+!scripts/

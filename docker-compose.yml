@@ -1,0 +1,57 @@
+# ==============================
+# Newt Docker Compose
+# 3D AI Companion with Neuroplasticity
+# ==============================
+
+services:
+  # --- Backend API (FastAPI + LangGraph) ---
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    env_file: .env
+    volumes:
+      - ./Backend:/app
+      - sandbox_data:/app/sandbox
+      - /var/run/docker.sock:/var/run/docker.sock
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      qdrant:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # --- Frontend (Vite + React + R3F) ---
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    env_file: .env
+    volumes:
+      - ./Frontend/src:/app/src
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  # --- Qdrant Vector DB ---
+  qdrant:
+    image: qdrant/qdrant:v1.12.1
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
+volumes:
+  qdrant_data:
+  sandbox_data:

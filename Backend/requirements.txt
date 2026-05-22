@@ -1,0 +1,25 @@
+# --- Core ---
+setuptools
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+python-multipart==0.0.18
+
+# --- AI ---
+langchain==0.3.30
+langchain-core==0.3.85
+langchain-openai==0.2.14
+langgraph==0.3.34
+
+# --- Vector DB ---
+qdrant-client==1.12.1
+
+# --- Testing ---
+pytest==8.3.4
+pytest-asyncio==0.25.0
+httpx==0.28.1
+
+# --- Linting ---
+ruff==0.8.6
