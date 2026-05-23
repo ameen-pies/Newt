@@ -32,7 +32,7 @@ export const CHARACTERS: CharacterConfig[] = [
     type: "fbx",
     modelPath: "/models/characters/bimo.fbx",
     scale: 0.015,
-    position: [0, 0.8, 0],
+    position: [0, 0.4, 0],
     animationPath: "/animations/idle.fbx",
     description: "Bimo (FBX)",
   },

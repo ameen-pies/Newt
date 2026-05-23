@@ -14,27 +14,22 @@ const STANDARD_TO_J_BIP: Record<string, string> = {
   Spine2: "J_Bip_C_UpperChest",
   Neck: "J_Bip_C_Neck",
   Head: "J_Bip_C_Head",
-  // Left arm
   LeftShoulder: "J_Bip_L_Shoulder",
   LeftArm: "J_Bip_L_UpperArm",
   LeftForeArm: "J_Bip_L_LowerArm",
   LeftHand: "J_Bip_L_Hand",
-  // Left leg
   LeftUpLeg: "J_Bip_L_UpperLeg",
   LeftLeg: "J_Bip_L_LowerLeg",
   LeftFoot: "J_Bip_L_Foot",
   LeftToeBase: "J_Bip_L_ToeBase",
-  // Right arm
   RightShoulder: "J_Bip_R_Shoulder",
   RightArm: "J_Bip_R_UpperArm",
   RightForeArm: "J_Bip_R_LowerArm",
   RightHand: "J_Bip_R_Hand",
-  // Right leg
   RightUpLeg: "J_Bip_R_UpperLeg",
   RightLeg: "J_Bip_R_LowerLeg",
   RightFoot: "J_Bip_R_Foot",
   RightToeBase: "J_Bip_R_ToeBase",
-  // Left fingers
   LeftHandThumb1: "J_Bip_L_Thumb1",
   LeftHandThumb2: "J_Bip_L_Thumb2",
   LeftHandThumb3: "J_Bip_L_Thumb3",
@@ -50,7 +45,6 @@ const STANDARD_TO_J_BIP: Record<string, string> = {
   LeftHandPinky1: "J_Bip_L_Little1",
   LeftHandPinky2: "J_Bip_L_Little2",
   LeftHandPinky3: "J_Bip_L_Little3",
-  // Right fingers
   RightHandThumb1: "J_Bip_R_Thumb1",
   RightHandThumb2: "J_Bip_R_Thumb2",
   RightHandThumb3: "J_Bip_R_Thumb3",
@@ -68,21 +62,9 @@ const STANDARD_TO_J_BIP: Record<string, string> = {
   RightHandPinky3: "J_Bip_R_Little3",
 };
 
-function remapMixamoTracks(clip: THREE.AnimationClip): THREE.AnimationClip {
-  const tracks = clip.tracks.flatMap((track) => {
-    const match = track.name.match(/^(?:mixamorig:?)([^.]+)\.(.+)$/);
-    if (!match) return [track];
-    const bone = match[1];
-    const prop = match[2];
-    const jBip = STANDARD_TO_J_BIP[bone];
-    if (!jBip) return [track];
-    if (jBip === "J_Bip_C_Hips" && prop === "position") return [];
-    const newName = `${jBip}.${prop}`;
-    const ctor = track.constructor as new (name: string, times: Float32Array, values: Float32Array, interpolation?: number) => THREE.KeyframeTrack;
-    return [new ctor(newName, track.times, track.values)];
-  });
-  return new THREE.AnimationClip(clip.name, clip.duration, tracks);
-}
+const CORRECTIONS: [RegExp, THREE.Quaternion][] = [
+  [/^(?:mixamorig:?)(Left|Right)Hand\.quaternion$/, new THREE.Quaternion(0, -0.7071068, 0, 0.7071068)],
+];
 
 function ProceduralAvatar() {
   const groupRef = useRef<THREE.Group>(null);
@@ -193,6 +175,8 @@ function FbxAvatar({ modelPath, scale, position, animationPath, onError }: { mod
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const [error, setError] = useState(false);
+  const testAnimation = useAppStore((s) => s.testAnimation);
+  const resolvedAnimation = testAnimation ?? animationPath;
 
   useEffect(() => {
     setScene(null);
@@ -203,10 +187,7 @@ function FbxAvatar({ modelPath, scale, position, animationPath, onError }: { mod
       modelPath,
       (fbx) => {
         setScene(fbx);
-        const bones: string[] = [];
-        fbx.traverse((child) => { if ((child as THREE.Bone).isBone) bones.push(child.name); });
-        if (bones.length) console.log(`[FbxAvatar] Model bones (${modelPath}):`, bones.slice(0, 50).join(", "));
-        if (!animationPath && fbx.animations.length > 0) {
+        if (!resolvedAnimation && fbx.animations.length > 0) {
           const mixer = new THREE.AnimationMixer(fbx);
           mixer.clipAction(fbx.animations[0]).play();
           mixerRef.current = mixer;
@@ -218,15 +199,48 @@ function FbxAvatar({ modelPath, scale, position, animationPath, onError }: { mod
   }, [modelPath]);
 
   useEffect(() => {
-    if (!scene || !animationPath) return;
+    if (!scene || !resolvedAnimation) return;
     setError(false);
     mixerRef.current = null;
+
+    function remapTrack(track: THREE.KeyframeTrack): THREE.KeyframeTrack | null {
+      const match = track.name.match(/^(?:mixamorig:?)([^.]+)\.(.+)$/);
+      if (!match) return null;
+      const bone = match[1];
+      const prop = match[2];
+      const jBip = STANDARD_TO_J_BIP[bone];
+      if (!jBip) return null;
+      if (jBip === "J_Bip_C_Hips" && prop === "position") return null;
+
+      let values = track.values;
+      for (const [re, c] of CORRECTIONS) {
+        if (re.test(track.name)) {
+          values = new Float32Array(track.values);
+          const q = new THREE.Quaternion();
+          for (let i = 0; i < values.length; i += 4) {
+            q.set(values[i], values[i + 1], values[i + 2], values[i + 3]);
+            q.premultiply(c);
+            values[i] = q.x; values[i + 1] = q.y; values[i + 2] = q.z; values[i + 3] = q.w;
+          }
+          break;
+        }
+      }
+
+      const newName = `${jBip}.${prop}`;
+      const ctor = track.constructor as new (name: string, times: Float32Array, values: Float32Array) => THREE.KeyframeTrack;
+      return new ctor(newName, track.times, values);
+    }
+
     const animLoader = new FBXLoader();
     animLoader.load(
-      animationPath,
+      resolvedAnimation,
       (animFbx) => {
         if (animFbx.animations.length === 0) return;
-        const clip = remapMixamoTracks(animFbx.animations[0]);
+        const tracks = animFbx.animations[0].tracks.flatMap((t) => {
+          const r = remapTrack(t);
+          return r ? [r] : [];
+        });
+        const clip = new THREE.AnimationClip("anim", -1, tracks);
         const mixer = new THREE.AnimationMixer(scene);
         mixer.clipAction(clip).play();
         mixerRef.current = mixer;
@@ -235,7 +249,7 @@ function FbxAvatar({ modelPath, scale, position, animationPath, onError }: { mod
       () => { setError(true); onError?.(); },
     );
     return () => { mixerRef.current?.stopAllAction(); mixerRef.current = null; };
-  }, [scene, animationPath]);
+  }, [scene, resolvedAnimation]);
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;

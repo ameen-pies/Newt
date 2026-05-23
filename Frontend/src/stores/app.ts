@@ -51,6 +51,9 @@ interface AppState {
   // Cognitive
   cognitiveState: CognitiveState;
 
+  // Dev / testing
+  testAnimation: string | null;
+
   // Sensors
   isListening: boolean;
   isScreenSharing: boolean;
@@ -75,6 +78,7 @@ interface AppState {
   addCustomVoice: (voice: ClonedVoice) => void;
   setCharacterId: (id: string) => void;
   setRoomModelId: (id: string) => void;
+  setTestAnimation: (path: string | null) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -100,6 +104,7 @@ export const useAppStore = create<AppState>((set) => ({
     focus: "idle",
     active_thought: null,
   },
+  testAnimation: null,
   isListening: false,
   isScreenSharing: false,
   wsConnected: false,
@@ -126,4 +131,5 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({ customVoices: [...state.customVoices, voice] })),
   setCharacterId: (id) => set({ characterId: id }),
   setRoomModelId: (id) => set({ roomModelId: id }),
+  setTestAnimation: (path) => set({ testAnimation: path }),
 }));

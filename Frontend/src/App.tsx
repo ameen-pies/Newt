@@ -4,6 +4,7 @@ import { ChatPanel } from "@/components/ui/ChatPanel";
 import { CognitiveOverlay } from "@/components/ui/CognitiveOverlay";
 import { SetupScreen } from "@/components/ui/SetupScreen";
 import { Controls } from "@/components/ui/Controls";
+import { AnimationBar } from "@/components/ui/AnimationBar";
 import { useAppStore } from "@/stores/app";
 import { useWebSocket } from "@/hooks/useWebSocket";
 
@@ -32,6 +33,7 @@ function AppContent() {
       <CognitiveOverlay />
       <ChatPanel />
       <Controls />
+      <AnimationBar />
     </div>
   );
 }
