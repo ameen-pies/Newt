@@ -1,7 +1,7 @@
 export interface CharacterConfig {
   id: string;
   name: string;
-  type: "procedural" | "gltf" | "vrm";
+  type: "procedural" | "gltf" | "vrm" | "fbx";
   modelPath?: string;
   description: string;
   scale?: number;
@@ -29,12 +29,22 @@ export const CHARACTERS: CharacterConfig[] = [
   {
     id: "bimo",
     name: "Bimo",
-    type: "vrm",
-    modelPath: "/models/characters/bimo.vrm",
+    type: "fbx",
+    modelPath: "/models/characters/bimo.fbx",
     scale: 1.2,
     position: [0, 0.8, 0],
     animationPath: "/animations/idle.fbx",
-    description: "Custom VRM character",
+    description: "Bimo (FBX)",
+  },
+  {
+    id: "lucy",
+    name: "Lucy",
+    type: "fbx",
+    modelPath: "/models/characters/lucy.fbx",
+    scale: 1.0,
+    position: [0, 0.8, 0],
+    animationPath: "/animations/idle.fbx",
+    description: "Lucy (FBX)",
   },
   // ─────────────────────────────────────────────────
   // ★ To add a custom character:

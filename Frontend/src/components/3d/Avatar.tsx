@@ -1,7 +1,7 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { GLTFLoader } from "three-stdlib";
+import { GLTFLoader, FBXLoader } from "three-stdlib";
 import { VRMLoaderPlugin } from "@pixiv/three-vrm";
 import { useAppStore } from "@/stores/app";
 import { CHARACTERS } from "@/config/characters";
@@ -111,6 +111,69 @@ function GltfAvatar({ modelPath, scale, position, onError }: { modelPath: string
   );
 }
 
+function FbxAvatar({ modelPath, scale, position, animationPath, onError }: { modelPath: string; scale?: number; position?: [number, number, number]; animationPath?: string; onError?: () => void }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const [scene, setScene] = useState<THREE.Group | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setScene(null);
+    setError(false);
+    mixerRef.current = null;
+    const loader = new FBXLoader();
+    loader.load(
+      modelPath,
+      (fbx) => {
+        setScene(fbx);
+        if (!animationPath && fbx.animations.length > 0) {
+          const mixer = new THREE.AnimationMixer(fbx);
+          mixer.clipAction(fbx.animations[0]).play();
+          mixerRef.current = mixer;
+        }
+      },
+      undefined,
+      () => { setError(true); onError?.(); },
+    );
+  }, [modelPath]);
+
+  useEffect(() => {
+    if (!scene || !animationPath) return;
+    setError(false);
+    mixerRef.current = null;
+    const animLoader = new FBXLoader();
+    animLoader.load(
+      animationPath,
+      (animFbx) => {
+        if (animFbx.animations.length === 0) return;
+        const mixer = new THREE.AnimationMixer(scene);
+        mixer.clipAction(animFbx.animations[0]).play();
+        mixerRef.current = mixer;
+      },
+      undefined,
+      () => { setError(true); onError?.(); },
+    );
+    return () => { mixerRef.current?.stopAllAction(); mixerRef.current = null; };
+  }, [scene, animationPath]);
+
+  useFrame((_, delta) => {
+    if (!groupRef.current) return;
+    const t = performance.now() / 1000;
+    groupRef.current.position.y = Math.sin(t * 1.5) * 0.05 + (position?.[1] ?? 0);
+    groupRef.current.rotation.y = Math.sin(t * 0.3) * 0.1;
+    mixerRef.current?.update(delta);
+  });
+
+  if (error) return null;
+  if (!scene) return null;
+
+  return (
+    <group ref={groupRef} position={[position?.[0] ?? 0, 0, position?.[2] ?? 0]} scale={scale ?? 1}>
+      <primitive object={scene} />
+    </group>
+  );
+}
+
 export function Avatar() {
   const { characterId } = useAppStore();
   const config = CHARACTERS.find((c) => c.id === characterId) ?? CHARACTERS[0];
@@ -128,6 +191,10 @@ export function Avatar() {
 
   if (config.type === "gltf" && config.modelPath) {
     return <GltfAvatar modelPath={config.modelPath} scale={config.scale} position={config.position} onError={() => setLoadFailed(true)} />;
+  }
+
+  if (config.type === "fbx" && config.modelPath) {
+    return <FbxAvatar modelPath={config.modelPath} scale={config.scale} position={config.position} animationPath={config.animationPath} onError={() => setLoadFailed(true)} />;
   }
 
   return <ProceduralAvatar />;
