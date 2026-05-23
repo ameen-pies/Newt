@@ -1,7 +1,7 @@
 export interface CharacterConfig {
   id: string;
   name: string;
-  type: "procedural" | "gltf";
+  type: "procedural" | "gltf" | "vrm";
   modelPath?: string;
   description: string;
   scale?: number;
@@ -26,20 +26,24 @@ export const CHARACTERS: CharacterConfig[] = [
     },
   },
   {
-    id: "vroid-avatar",
-    name: "VRoid Avatar",
-    type: "gltf",
-    modelPath: "/models/characters/vroid-avatar.glb",
-    scale: 0.8,
+    id: "bimo",
+    name: "Bimo",
+    type: "vrm",
+    modelPath: "/models/characters/bimo.vrm",
+    scale: 1.2,
     position: [0, 0.8, 0],
-    description: "Imported VRoid model",
+    description: "Custom VRM character",
   },
   // ─────────────────────────────────────────────────
-  // ★ Add more custom characters below:
+  // ★ To add a custom character:
+  //   1. Export your model as .glb or .vrm from your 3D tool (Blender, etc.)
+  //      ⚠ Renaming .max/.obj/.fbx to .glb does NOT work — use File > Export
+  //   2. Place the file in public/models/characters/
+  //   3. Add an entry below:
   // {
   //   id: "my-character",
   //   name: "My Character",
-  //   type: "gltf",
+  //   type: "gltf",       // "gltf" for .glb/.gltf, "vrm" for .vrm files
   //   modelPath: "/models/characters/my-character.glb",
   //   scale: 0.8,
   //   position: [0, 0.8, 0],

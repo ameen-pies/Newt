@@ -1,9 +1,11 @@
-import { useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { useFrame } from "@react-three/fiber";
-import { useGLTF } from "@react-three/drei";
 import * as THREE from "three";
+import { GLTFLoader } from "three-stdlib";
+import { VRMLoaderPlugin } from "@pixiv/three-vrm";
 import { useAppStore } from "@/stores/app";
 import { CHARACTERS } from "@/config/characters";
+import { VrmAvatar } from "./VrmAvatar";
 
 function ProceduralAvatar() {
   const groupRef = useRef<THREE.Group>(null);
@@ -74,10 +76,23 @@ function ProceduralAvatar() {
   );
 }
 
-function GltfAvatar({ modelPath, scale, position }: { modelPath: string; scale?: number; position?: [number, number, number] }) {
-  const { scene } = useGLTF(modelPath);
+function GltfAvatar({ modelPath, scale, position, onError }: { modelPath: string; scale?: number; position?: [number, number, number]; onError?: () => void }) {
   const groupRef = useRef<THREE.Group>(null);
-  const { isThinking } = useAppStore();
+  const [scene, setScene] = useState<THREE.Group | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setScene(null);
+    setError(false);
+    const loader = new GLTFLoader();
+    loader.register((parser: any) => new VRMLoaderPlugin(parser) as any);
+    loader.load(
+      modelPath,
+      (gltf) => { setScene(gltf.scene); },
+      undefined,
+      () => { setError(true); onError?.(); },
+    );
+  }, [modelPath]);
 
   useFrame((state) => {
     if (!groupRef.current) return;
@@ -86,11 +101,12 @@ function GltfAvatar({ modelPath, scale, position }: { modelPath: string; scale?:
     groupRef.current.rotation.y = Math.sin(t * 0.3) * 0.1;
   });
 
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
+  if (error) return null;
+  if (!scene) return null;
 
   return (
     <group ref={groupRef} position={[position?.[0] ?? 0, 0, position?.[2] ?? 0]} scale={scale ?? 1}>
-      <primitive object={clonedScene} />
+      <primitive object={scene} />
     </group>
   );
 }
@@ -98,9 +114,20 @@ function GltfAvatar({ modelPath, scale, position }: { modelPath: string; scale?:
 export function Avatar() {
   const { characterId } = useAppStore();
   const config = CHARACTERS.find((c) => c.id === characterId) ?? CHARACTERS[0];
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => { setLoadFailed(false); }, [characterId]);
+
+  if (loadFailed || config.type === "procedural") {
+    return <ProceduralAvatar />;
+  }
+
+  if (config.type === "vrm" && config.modelPath) {
+    return <VrmAvatar modelPath={config.modelPath} scale={config.scale} onError={() => setLoadFailed(true)} />;
+  }
 
   if (config.type === "gltf" && config.modelPath) {
-    return <GltfAvatar modelPath={config.modelPath} scale={config.scale} position={config.position} />;
+    return <GltfAvatar modelPath={config.modelPath} scale={config.scale} position={config.position} onError={() => setLoadFailed(true)} />;
   }
 
   return <ProceduralAvatar />;

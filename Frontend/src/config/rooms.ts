@@ -56,15 +56,23 @@ export const ROOMS: RoomConfig[] = [
     name: "Living Room",
     type: "gltf",
     modelPath: "/models/rooms/livingroom.glb",
+    scale: 0.5,
+    position: [0, -0.5, 0],
     description: "Wabisabi living room",
   },
   // ─────────────────────────────────────────────────
-  // ★ Add more custom rooms below:
+  // ★ To add a custom room:
+  //   1. Export your model as .glb from your 3D tool (Blender, 3ds Max, etc.)
+  //      ⚠ Renaming .max/.obj/.fbx to .glb does NOT work — use File > Export
+  //   2. Place the file in public/models/rooms/
+  //   3. Add an entry below:
   // {
   //   id: "my-room",
   //   name: "My Room",
   //   type: "gltf",
   //   modelPath: "/models/rooms/my-room.glb",
+  //   scale: 1,
+  //   position: [0, 0, 0],
   //   description: "Description",
   // },
   // ─────────────────────────────────────────────────

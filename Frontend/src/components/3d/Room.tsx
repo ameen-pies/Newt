@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
-import { useGLTF } from "@react-three/drei";
+import { GLTFLoader } from "three-stdlib";
 import { useAppStore } from "@/stores/app";
 import { ROOMS } from "@/config/rooms";
 
@@ -59,13 +59,28 @@ function ProceduralRoom({ colors }: { colors: { floor: string; wall: string; acc
   );
 }
 
-function GltfRoom({ modelPath, scale, position }: { modelPath: string; scale?: number; position?: [number, number, number] }) {
-  const { scene } = useGLTF(modelPath);
-  const clonedScene = useMemo(() => scene.clone(), [scene]);
+function GltfRoom({ modelPath, scale, position, onError }: { modelPath: string; scale?: number; position?: [number, number, number]; onError?: () => void }) {
+  const [scene, setScene] = useState<THREE.Group | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setScene(null);
+    setError(false);
+    const loader = new GLTFLoader();
+    loader.load(
+      modelPath,
+      (gltf) => setScene(gltf.scene),
+      undefined,
+      () => { setError(true); onError?.(); },
+    );
+  }, [modelPath]);
+
+  if (error) return null;
+  if (!scene) return null;
 
   return (
     <group position={position ?? [0, 0, 0]} scale={scale ?? 1}>
-      <primitive object={clonedScene} />
+      <primitive object={scene} />
     </group>
   );
 }
@@ -73,9 +88,16 @@ function GltfRoom({ modelPath, scale, position }: { modelPath: string; scale?: n
 export function Room() {
   const { roomModelId } = useAppStore();
   const config = ROOMS.find((r) => r.id === roomModelId) ?? ROOMS[0];
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => { setLoadFailed(false); }, [roomModelId]);
+
+  if (loadFailed || config.type === "procedural") {
+    return <ProceduralRoom colors={config.colors ?? ROOMS[0].colors!} />;
+  }
 
   if (config.type === "gltf" && config.modelPath) {
-    return <GltfRoom modelPath={config.modelPath} scale={config.scale} position={config.position} />;
+    return <GltfRoom modelPath={config.modelPath} scale={config.scale} position={config.position} onError={() => setLoadFailed(true)} />;
   }
 
   return <ProceduralRoom colors={config.colors!} />;
