@@ -6,6 +6,7 @@ export interface CharacterConfig {
   description: string;
   scale?: number;
   position?: [number, number, number];
+  animationPath?: string;
   procedural?: {
     bodyColor: string;
     accentColor: string;
@@ -32,6 +33,7 @@ export const CHARACTERS: CharacterConfig[] = [
     modelPath: "/models/characters/bimo.vrm",
     scale: 1.2,
     position: [0, 0.8, 0],
+    animationPath: "/animations/idle.fbx",
     description: "Custom VRM character",
   },
   // ─────────────────────────────────────────────────

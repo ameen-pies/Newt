@@ -123,7 +123,7 @@ export function Avatar() {
   }
 
   if (config.type === "vrm" && config.modelPath) {
-    return <VrmAvatar modelPath={config.modelPath} scale={config.scale} onError={() => setLoadFailed(true)} />;
+    return <VrmAvatar modelPath={config.modelPath} scale={config.scale} animationPath={config.animationPath} onError={() => setLoadFailed(true)} />;
   }
 
   if (config.type === "gltf" && config.modelPath) {
