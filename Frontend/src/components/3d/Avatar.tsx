@@ -7,6 +7,83 @@ import { useAppStore } from "@/stores/app";
 import { CHARACTERS } from "@/config/characters";
 import { VrmAvatar } from "./VrmAvatar";
 
+const STANDARD_TO_J_BIP: Record<string, string> = {
+  Hips: "J_Bip_C_Hips",
+  Spine: "J_Bip_C_Spine",
+  Spine1: "J_Bip_C_Chest",
+  Spine2: "J_Bip_C_UpperChest",
+  Neck: "J_Bip_C_Neck",
+  Head: "J_Bip_C_Head",
+  // Left arm
+  LeftShoulder: "J_Bip_L_Shoulder",
+  LeftArm: "J_Bip_L_UpperArm",
+  LeftForeArm: "J_Bip_L_LowerArm",
+  LeftHand: "J_Bip_L_Hand",
+  // Left leg
+  LeftUpLeg: "J_Bip_L_UpperLeg",
+  LeftLeg: "J_Bip_L_LowerLeg",
+  LeftFoot: "J_Bip_L_Foot",
+  LeftToeBase: "J_Bip_L_ToeBase",
+  // Right arm
+  RightShoulder: "J_Bip_R_Shoulder",
+  RightArm: "J_Bip_R_UpperArm",
+  RightForeArm: "J_Bip_R_LowerArm",
+  RightHand: "J_Bip_R_Hand",
+  // Right leg
+  RightUpLeg: "J_Bip_R_UpperLeg",
+  RightLeg: "J_Bip_R_LowerLeg",
+  RightFoot: "J_Bip_R_Foot",
+  RightToeBase: "J_Bip_R_ToeBase",
+  // Left fingers
+  LeftHandThumb1: "J_Bip_L_Thumb1",
+  LeftHandThumb2: "J_Bip_L_Thumb2",
+  LeftHandThumb3: "J_Bip_L_Thumb3",
+  LeftHandIndex1: "J_Bip_L_Index1",
+  LeftHandIndex2: "J_Bip_L_Index2",
+  LeftHandIndex3: "J_Bip_L_Index3",
+  LeftHandMiddle1: "J_Bip_L_Middle1",
+  LeftHandMiddle2: "J_Bip_L_Middle2",
+  LeftHandMiddle3: "J_Bip_L_Middle3",
+  LeftHandRing1: "J_Bip_L_Ring1",
+  LeftHandRing2: "J_Bip_L_Ring2",
+  LeftHandRing3: "J_Bip_L_Ring3",
+  LeftHandPinky1: "J_Bip_L_Little1",
+  LeftHandPinky2: "J_Bip_L_Little2",
+  LeftHandPinky3: "J_Bip_L_Little3",
+  // Right fingers
+  RightHandThumb1: "J_Bip_R_Thumb1",
+  RightHandThumb2: "J_Bip_R_Thumb2",
+  RightHandThumb3: "J_Bip_R_Thumb3",
+  RightHandIndex1: "J_Bip_R_Index1",
+  RightHandIndex2: "J_Bip_R_Index2",
+  RightHandIndex3: "J_Bip_R_Index3",
+  RightHandMiddle1: "J_Bip_R_Middle1",
+  RightHandMiddle2: "J_Bip_R_Middle2",
+  RightHandMiddle3: "J_Bip_R_Middle3",
+  RightHandRing1: "J_Bip_R_Ring1",
+  RightHandRing2: "J_Bip_R_Ring2",
+  RightHandRing3: "J_Bip_R_Ring3",
+  RightHandPinky1: "J_Bip_R_Little1",
+  RightHandPinky2: "J_Bip_R_Little2",
+  RightHandPinky3: "J_Bip_R_Little3",
+};
+
+function remapMixamoTracks(clip: THREE.AnimationClip): THREE.AnimationClip {
+  const tracks = clip.tracks.flatMap((track) => {
+    const match = track.name.match(/^(?:mixamorig:?)([^.]+)\.(.+)$/);
+    if (!match) return [track];
+    const bone = match[1];
+    const prop = match[2];
+    const jBip = STANDARD_TO_J_BIP[bone];
+    if (!jBip) return [track];
+    if (jBip === "J_Bip_C_Hips" && prop === "position") return [];
+    const newName = `${jBip}.${prop}`;
+    const ctor = track.constructor as new (name: string, times: Float32Array, values: Float32Array, interpolation?: number) => THREE.KeyframeTrack;
+    return [new ctor(newName, track.times, track.values)];
+  });
+  return new THREE.AnimationClip(clip.name, clip.duration, tracks);
+}
+
 function ProceduralAvatar() {
   const groupRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Mesh>(null);
@@ -126,6 +203,9 @@ function FbxAvatar({ modelPath, scale, position, animationPath, onError }: { mod
       modelPath,
       (fbx) => {
         setScene(fbx);
+        const bones: string[] = [];
+        fbx.traverse((child) => { if ((child as THREE.Bone).isBone) bones.push(child.name); });
+        if (bones.length) console.log(`[FbxAvatar] Model bones (${modelPath}):`, bones.slice(0, 50).join(", "));
         if (!animationPath && fbx.animations.length > 0) {
           const mixer = new THREE.AnimationMixer(fbx);
           mixer.clipAction(fbx.animations[0]).play();
@@ -146,8 +226,9 @@ function FbxAvatar({ modelPath, scale, position, animationPath, onError }: { mod
       animationPath,
       (animFbx) => {
         if (animFbx.animations.length === 0) return;
+        const clip = remapMixamoTracks(animFbx.animations[0]);
         const mixer = new THREE.AnimationMixer(scene);
-        mixer.clipAction(animFbx.animations[0]).play();
+        mixer.clipAction(clip).play();
         mixerRef.current = mixer;
       },
       undefined,

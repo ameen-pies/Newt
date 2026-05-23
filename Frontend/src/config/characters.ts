@@ -31,20 +31,10 @@ export const CHARACTERS: CharacterConfig[] = [
     name: "Bimo",
     type: "fbx",
     modelPath: "/models/characters/bimo.fbx",
-    scale: 1.2,
+    scale: 0.015,
     position: [0, 0.8, 0],
     animationPath: "/animations/idle.fbx",
     description: "Bimo (FBX)",
-  },
-  {
-    id: "lucy",
-    name: "Lucy",
-    type: "fbx",
-    modelPath: "/models/characters/lucy.fbx",
-    scale: 1.0,
-    position: [0, 0.8, 0],
-    animationPath: "/animations/idle.fbx",
-    description: "Lucy (FBX)",
   },
   // ─────────────────────────────────────────────────
   // ★ To add a custom character:
