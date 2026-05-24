@@ -1,4 +1,5 @@
 import { LUCY_BONE_MAP } from "./bone-maps/lucy";
+import { PINKDRESS_BONE_MAP } from "./bone-maps/pinkdress";
 
 export interface CharacterConfig {
   id: string;
@@ -11,6 +12,7 @@ export interface CharacterConfig {
   animationPath?: string;
   texturePath?: string;
   boneMap?: Record<string, string>;
+  rotation?: [number, number, number];
   procedural?: {
     bodyColor: string;
     accentColor: string;
@@ -36,10 +38,25 @@ export const CHARACTERS: CharacterConfig[] = [
     type: "fbx",
     modelPath: "/models/characters/lucy.fbx",
     scale: 1.0,
-    position: [0, 0, 0],
+    position: [0, 1, 0],
     texturePath: "/textures/lucy/",
+    animationPath: "/animations/idle.fbx",
     boneMap: LUCY_BONE_MAP,
+    rotation: [-Math.PI / 2, 0, 0],
     description: "Lucy (Female Base FBX)",
+  },
+  {
+    id: "pinkdress",
+    name: "Pink Dress",
+    type: "fbx",
+    modelPath: "/models/characters/pinkdress.fbx",
+    scale: 0.01,
+    position: [0, 1, 0],
+    texturePath: "/textures/pinkdress/",
+    animationPath: "/animations/idle.fbx",
+    boneMap: PINKDRESS_BONE_MAP,
+    rotation: [Math.PI / 2, 0, 0],
+    description: "Pink Dress (Daz3D)",
   },
   // ─────────────────────────────────────────────────
   // ★ To add a custom character:

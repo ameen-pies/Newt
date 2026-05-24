@@ -105,13 +105,13 @@ function GltfAvatar({ modelPath, scale, position, onError }: { modelPath: string
   if (!scene) return null;
 
   return (
-    <group ref={groupRef} position={[position?.[0] ?? 0, 0, position?.[2] ?? 0]} scale={scale ?? 1}>
+    <group ref={groupRef} position={[position?.[0] ?? 0, position?.[1] ?? 0, position?.[2] ?? 0]} scale={scale ?? 1}>
       <primitive object={scene} />
     </group>
   );
 }
 
-function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, boneMap, onError }: { modelPath: string; scale?: number; position?: [number, number, number]; animationPath?: string; texturePath?: string; boneMap?: Record<string, string>; onError?: () => void }) {
+function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, boneMap, rotation, onError }: { modelPath: string; scale?: number; position?: [number, number, number]; animationPath?: string; texturePath?: string; boneMap?: Record<string, string>; rotation?: [number, number, number]; onError?: () => void }) {
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const [scene, setScene] = useState<THREE.Group | null>(null);
@@ -133,12 +133,20 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
         // Match material name to texture prefix
         function getTexturePrefix(name: string): string | null {
           const lower = (name || "").toLowerCase();
-          if (lower.includes("body")) return "m_body";
-          if (lower.includes("clothes")) return "m_clothes";
+          if (lower.includes("skin_body") || (lower.includes("body") && lower.includes("skin"))) return "m_body";
+          if (lower.includes("skin_head")) return "m_body_head";
+          if (lower.includes("skin_arm")) return "m_body_arm";
+          if (lower.includes("skin_leg")) return "m_body_leg";
+          if (lower.includes("clothes") || lower.includes("armor") || lower.includes("dress") || lower.includes("heels")) return "m_clothes";
           if (lower.includes("hair_extra")) return "m_hair_extra";
-          if (lower.includes("hair")) return "m_hair";
-          if (lower.includes("eyes")) return "m_eyes";
-          if (lower.includes("mouth")) return "m_mouth";
+          if (lower.includes("scalp")) return "m_hair_scalp";
+          if (lower.includes("polytail") || lower.includes("hair")) return "m_hair";
+          if (lower.includes("eyelash")) return "m_eyelash";
+          if (lower.includes("cornea")) return "m_eyes";
+          if (lower.includes("eye_occlusion")) return "m_eyes";
+          if (lower.includes("eye")) return "m_eyes";
+          if (lower.includes("nails")) return "m_nails";
+          if (lower.includes("teeth") || lower.includes("tongue") || lower.includes("mouth")) return "m_mouth";
           return null;
         }
 
@@ -199,6 +207,13 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
           }
         });
 
+        // Log bone names for bone map creation
+        const boneNames: string[] = [];
+        fbx.traverse((child) => {
+          if (child.type === "Bone") boneNames.push(child.name);
+        });
+        console.log(`[Avatar] Bone names for ${modelPath}:`, boneNames);
+
         setScene(fbx);
       },
       undefined,
@@ -217,17 +232,38 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
       (animFbx) => {
         if (animFbx.animations.length === 0) return;
         const clip = animFbx.animations[0].clone();
+        // Drop position/scale tracks — Mixamo Hips.position moves model off-screen
+        clip.tracks = clip.tracks.filter((track) => track.name.endsWith(".quaternion"));
         for (const track of clip.tracks) {
           // Strip mixamorig: prefix first
           track.name = track.name.replace(/^mixamorig:?/i, "");
           // Apply bone map if available: remap animation bone names to model bone names
           if (boneMap) {
-            // Track name format: "BoneName.position" or "BoneName.quaternion"
+            // Track name format: "BoneName.quaternion"
             const dotIdx = track.name.indexOf(".");
             const boneName = dotIdx > -1 ? track.name.substring(0, dotIdx) : track.name;
             const suffix = dotIdx > -1 ? track.name.substring(dotIdx) : "";
             if (boneMap[boneName]) {
-              track.name = boneMap[boneName] + suffix;
+              const mapped = boneMap[boneName];
+              track.name = mapped + suffix;
+              // CC3 finger bones: Mixamo curls around X, CC3 curls around Z
+              // Swap x↔z quaternion components to redirect curl from sideways to forward
+              const isFinger = /Thumb|Index|Mid|Ring|Pinky/.test(mapped);
+              if (isFinger && mapped.startsWith("CC_Base_")) {
+                const isLeft = /CC_Base_L_/.test(mapped);
+                const vals = (track as THREE.QuaternionKeyframeTrack).values;
+                for (let i = 0; i < vals.length; i += 4) {
+                  const ox = vals[i];
+                  const oz = vals[i + 2];
+                  if (isLeft) {
+                    vals[i] = oz;        // x = old z
+                    vals[i + 2] = -ox;   // z = -old x
+                  } else {
+                    vals[i] = -oz;       // x = -old z
+                    vals[i + 2] = ox;    // z = old x
+                  }
+                }
+              }
             }
           }
         }
@@ -243,20 +279,15 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
     return () => { mixerRef.current?.stopAllAction(); mixerRef.current = null; };
   }, [scene, resolvedAnimation]);
 
-  useFrame((state) => {
-    const delta = state.clock.getDelta();
+  useFrame((_, delta) => {
     mixerRef.current?.update(delta);
-    if (!groupRef.current) return;
-    const t = state.clock.getElapsedTime();
-    groupRef.current.position.y = Math.sin(t * 1.5) * 0.05 + (position?.[1] ?? 0);
-    groupRef.current.rotation.y = Math.sin(t * 0.3) * 0.1;
   });
 
   if (error) return null;
   if (!scene) return null;
 
   return (
-    <group ref={groupRef} position={[position?.[0] ?? 0, 0, position?.[2] ?? 0]} scale={scale ?? 1}>
+    <group ref={groupRef} position={[position?.[0] ?? 0, position?.[1] ?? 0, position?.[2] ?? 0]} rotation={rotation ?? [0, 0, 0]} scale={scale ?? 1}>
       <primitive object={scene} />
     </group>
   );
@@ -282,7 +313,7 @@ export function Avatar() {
   }
 
   if (config.type === "fbx" && config.modelPath) {
-    return <FbxAvatar modelPath={config.modelPath} scale={config.scale} position={config.position} animationPath={config.animationPath} texturePath={config.texturePath} boneMap={config.boneMap} onError={() => setLoadFailed(true)} />;
+    return <FbxAvatar modelPath={config.modelPath} scale={config.scale} position={config.position} animationPath={config.animationPath} texturePath={config.texturePath} boneMap={config.boneMap} rotation={config.rotation} onError={() => setLoadFailed(true)} />;
   }
 
   return <ProceduralAvatar />;
