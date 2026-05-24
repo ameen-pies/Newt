@@ -1,0 +1,70 @@
+import type { BoneMap } from "./index";
+
+/**
+ * Lucy (colourly_female_base.fbx) uses Blender naming convention.
+ * Maps Mixamo bone names (after prefix strip) → Lucy bone names.
+ */
+export const LUCY_BONE_MAP: BoneMap = {
+  // Spine
+  "Spine": "Spine.001",
+
+  // Left side
+  "LeftShoulder": "Shoulder.L",
+  "LeftArm": "Arm.L",
+  "LeftForeArm": "ForeArm.L",
+  "LeftHand": "Hand.L",
+  "LeftHandThumb1": "HandThumb1.L",
+  "LeftHandThumb2": "HandThumb2.L",
+  "LeftHandThumb3": "HandThumb3.L",
+  "LeftHandThumb4": "HandThumb3.L",
+  "LeftHandIndex1": "HandIndex1.L",
+  "LeftHandIndex2": "HandIndex2.L",
+  "LeftHandIndex3": "HandIndex3.L",
+  "LeftHandIndex4": "HandIndex3.L",
+  "LeftHandMiddle1": "HandMiddle1.L",
+  "LeftHandMiddle2": "HandMiddle2.L",
+  "LeftHandMiddle3": "HandMiddle3.L",
+  "LeftHandMiddle4": "HandMiddle3.L",
+  "LeftHandRing1": "HandRing1.L",
+  "LeftHandRing2": "HandRing2.L",
+  "LeftHandRing3": "HandRing3.L",
+  "LeftHandRing4": "HandRing3.L",
+  "LeftHandPinky1": "HandPinky1.L",
+  "LeftHandPinky2": "HandPinky2.L",
+  "LeftHandPinky3": "HandPinky3.L",
+  "LeftHandPinky4": "HandPinky3.L",
+  "LeftUpLeg": "UpLeg.L",
+  "LeftLeg": "Leg.L",
+  "LeftFoot": "Foot.L",
+  "LeftToeBase": "ToeBase.L",
+
+  // Right side
+  "RightShoulder": "Shoulder.R",
+  "RightArm": "Arm.R",
+  "RightForeArm": "ForeArm.R",
+  "RightHand": "Hand.R",
+  "RightHandThumb1": "HandThumb1.R",
+  "RightHandThumb2": "HandThumb2.R",
+  "RightHandThumb3": "HandThumb3.R",
+  "RightHandThumb4": "HandThumb3.R",
+  "RightHandIndex1": "HandIndex1.R",
+  "RightHandIndex2": "HandIndex2.R",
+  "RightHandIndex3": "HandIndex3.R",
+  "RightHandIndex4": "HandIndex3.R",
+  "RightHandMiddle1": "HandMiddle1.R",
+  "RightHandMiddle2": "HandMiddle2.R",
+  "RightHandMiddle3": "HandMiddle3.R",
+  "RightHandMiddle4": "HandMiddle3.R",
+  "RightHandRing1": "HandRing1.R",
+  "RightHandRing2": "HandRing2.R",
+  "RightHandRing3": "HandRing3.R",
+  "RightHandRing4": "HandRing3.R",
+  "RightHandPinky1": "HandPinky1.R",
+  "RightHandPinky2": "HandPinky2.R",
+  "RightHandPinky3": "HandPinky3.R",
+  "RightHandPinky4": "HandPinky3.R",
+  "RightUpLeg": "UpLeg.R",
+  "RightLeg": "Leg.R",
+  "RightFoot": "Foot.R",
+  "RightToeBase": "ToeBase.R",
+};

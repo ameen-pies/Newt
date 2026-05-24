@@ -1,3 +1,5 @@
+import { LUCY_BONE_MAP } from "./bone-maps/lucy";
+
 export interface CharacterConfig {
   id: string;
   name: string;
@@ -7,6 +9,8 @@ export interface CharacterConfig {
   scale?: number;
   position?: [number, number, number];
   animationPath?: string;
+  texturePath?: string;
+  boneMap?: Record<string, string>;
   procedural?: {
     bodyColor: string;
     accentColor: string;
@@ -27,14 +31,15 @@ export const CHARACTERS: CharacterConfig[] = [
     },
   },
   {
-    id: "bimo",
-    name: "Bimo",
+    id: "lucy",
+    name: "Lucy",
     type: "fbx",
-    modelPath: "/models/characters/bimo.fbx",
-    scale: 0.015,
-    position: [0, 0.4, 0],
-    animationPath: "/animations/idle.fbx",
-    description: "Bimo (FBX)",
+    modelPath: "/models/characters/lucy.fbx",
+    scale: 1.0,
+    position: [0, 0, 0],
+    texturePath: "/textures/lucy/",
+    boneMap: LUCY_BONE_MAP,
+    description: "Lucy (Female Base FBX)",
   },
   // ─────────────────────────────────────────────────
   // ★ To add a custom character:

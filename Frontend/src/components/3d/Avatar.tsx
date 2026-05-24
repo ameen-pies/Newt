@@ -7,65 +7,6 @@ import { useAppStore } from "@/stores/app";
 import { CHARACTERS } from "@/config/characters";
 import { VrmAvatar } from "./VrmAvatar";
 
-const STANDARD_TO_J_BIP: Record<string, string> = {
-  Hips: "J_Bip_C_Hips",
-  Spine: "J_Bip_C_Spine",
-  Spine1: "J_Bip_C_Chest",
-  Spine2: "J_Bip_C_UpperChest",
-  Neck: "J_Bip_C_Neck",
-  Head: "J_Bip_C_Head",
-  LeftShoulder: "J_Bip_L_Shoulder",
-  LeftArm: "J_Bip_L_UpperArm",
-  LeftForeArm: "J_Bip_L_LowerArm",
-  LeftHand: "J_Bip_L_Hand",
-  LeftUpLeg: "J_Bip_L_UpperLeg",
-  LeftLeg: "J_Bip_L_LowerLeg",
-  LeftFoot: "J_Bip_L_Foot",
-  LeftToeBase: "J_Bip_L_ToeBase",
-  RightShoulder: "J_Bip_R_Shoulder",
-  RightArm: "J_Bip_R_UpperArm",
-  RightForeArm: "J_Bip_R_LowerArm",
-  RightHand: "J_Bip_R_Hand",
-  RightUpLeg: "J_Bip_R_UpperLeg",
-  RightLeg: "J_Bip_R_LowerLeg",
-  RightFoot: "J_Bip_R_Foot",
-  RightToeBase: "J_Bip_R_ToeBase",
-  LeftHandThumb1: "J_Bip_L_Thumb1",
-  LeftHandThumb2: "J_Bip_L_Thumb2",
-  LeftHandThumb3: "J_Bip_L_Thumb3",
-  LeftHandIndex1: "J_Bip_L_Index1",
-  LeftHandIndex2: "J_Bip_L_Index2",
-  LeftHandIndex3: "J_Bip_L_Index3",
-  LeftHandMiddle1: "J_Bip_L_Middle1",
-  LeftHandMiddle2: "J_Bip_L_Middle2",
-  LeftHandMiddle3: "J_Bip_L_Middle3",
-  LeftHandRing1: "J_Bip_L_Ring1",
-  LeftHandRing2: "J_Bip_L_Ring2",
-  LeftHandRing3: "J_Bip_L_Ring3",
-  LeftHandPinky1: "J_Bip_L_Little1",
-  LeftHandPinky2: "J_Bip_L_Little2",
-  LeftHandPinky3: "J_Bip_L_Little3",
-  RightHandThumb1: "J_Bip_R_Thumb1",
-  RightHandThumb2: "J_Bip_R_Thumb2",
-  RightHandThumb3: "J_Bip_R_Thumb3",
-  RightHandIndex1: "J_Bip_R_Index1",
-  RightHandIndex2: "J_Bip_R_Index2",
-  RightHandIndex3: "J_Bip_R_Index3",
-  RightHandMiddle1: "J_Bip_R_Middle1",
-  RightHandMiddle2: "J_Bip_R_Middle2",
-  RightHandMiddle3: "J_Bip_R_Middle3",
-  RightHandRing1: "J_Bip_R_Ring1",
-  RightHandRing2: "J_Bip_R_Ring2",
-  RightHandRing3: "J_Bip_R_Ring3",
-  RightHandPinky1: "J_Bip_R_Little1",
-  RightHandPinky2: "J_Bip_R_Little2",
-  RightHandPinky3: "J_Bip_R_Little3",
-};
-
-const CORRECTIONS: [RegExp, THREE.Quaternion][] = [
-  [/^(?:mixamorig:?)(Left|Right)Hand\.quaternion$/, new THREE.Quaternion(0, -0.7071068, 0, 0.7071068)],
-];
-
 function ProceduralAvatar() {
   const groupRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Mesh>(null);
@@ -170,7 +111,7 @@ function GltfAvatar({ modelPath, scale, position, onError }: { modelPath: string
   );
 }
 
-function FbxAvatar({ modelPath, scale, position, animationPath, onError }: { modelPath: string; scale?: number; position?: [number, number, number]; animationPath?: string; onError?: () => void }) {
+function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, boneMap, onError }: { modelPath: string; scale?: number; position?: [number, number, number]; animationPath?: string; texturePath?: string; boneMap?: Record<string, string>; onError?: () => void }) {
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const [scene, setScene] = useState<THREE.Group | null>(null);
@@ -186,12 +127,79 @@ function FbxAvatar({ modelPath, scale, position, animationPath, onError }: { mod
     loader.load(
       modelPath,
       (fbx) => {
-        setScene(fbx);
-        if (!resolvedAnimation && fbx.animations.length > 0) {
-          const mixer = new THREE.AnimationMixer(fbx);
-          mixer.clipAction(fbx.animations[0]).play();
-          mixerRef.current = mixer;
+        const textureLoader = new THREE.TextureLoader();
+        const texBase = texturePath ?? "/textures/";
+
+        // Match material name to texture prefix
+        function getTexturePrefix(name: string): string | null {
+          const lower = (name || "").toLowerCase();
+          if (lower.includes("body")) return "m_body";
+          if (lower.includes("clothes")) return "m_clothes";
+          if (lower.includes("hair_extra")) return "m_hair_extra";
+          if (lower.includes("hair")) return "m_hair";
+          if (lower.includes("eyes")) return "m_eyes";
+          if (lower.includes("mouth")) return "m_mouth";
+          return null;
         }
+
+        fbx.traverse((child) => {
+          if (child.type !== "SkinnedMesh") return;
+          const mesh = child as THREE.SkinnedMesh;
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+
+          for (let i = 0; i < materials.length; i++) {
+            const mat = materials[i];
+            if (!mat) continue;
+            const prefix = getTexturePrefix(mat.name || mesh.name);
+
+            // Convert to StandardMaterial
+            let standardMat: THREE.MeshStandardMaterial;
+            if (mat instanceof THREE.MeshStandardMaterial) {
+              standardMat = mat;
+            } else {
+              standardMat = new THREE.MeshStandardMaterial();
+              if (mat instanceof THREE.MeshPhongMaterial) {
+                standardMat.color.copy(mat.color);
+                standardMat.emissive.copy(mat.emissive);
+                standardMat.emissiveIntensity = mat.emissiveIntensity;
+                standardMat.opacity = mat.opacity;
+                standardMat.transparent = mat.transparent;
+              } else {
+                standardMat.color.set(0xffffff);
+              }
+              if (Array.isArray(mesh.material)) {
+                mesh.material[i] = standardMat;
+              } else {
+                mesh.material = standardMat;
+              }
+            }
+
+            if (prefix) {
+              // Load diffuse
+              textureLoader.load(texBase + prefix + "_diffuse.png", (tex) => {
+                standardMat.map = tex;
+                standardMat.color.set(0xffffff);
+                standardMat.needsUpdate = true;
+              });
+              // Load normal map
+              textureLoader.load(texBase + prefix + "_normal.png", (tex) => {
+                standardMat.normalMap = tex;
+                standardMat.needsUpdate = true;
+              });
+              // Load roughness map
+              textureLoader.load(texBase + prefix + "_roughness.png", (tex) => {
+                standardMat.roughnessMap = tex;
+                standardMat.needsUpdate = true;
+              });
+            }
+
+            standardMat.metalness = 0;
+            standardMat.roughness = 1;
+            standardMat.envMapIntensity = 0;
+          }
+        });
+
+        setScene(fbx);
       },
       undefined,
       () => { setError(true); onError?.(); },
@@ -203,60 +211,45 @@ function FbxAvatar({ modelPath, scale, position, animationPath, onError }: { mod
     setError(false);
     mixerRef.current = null;
 
-    function remapTrack(track: THREE.KeyframeTrack): THREE.KeyframeTrack | null {
-      const match = track.name.match(/^(?:mixamorig:?)([^.]+)\.(.+)$/);
-      if (!match) return null;
-      const bone = match[1];
-      const prop = match[2];
-      const jBip = STANDARD_TO_J_BIP[bone];
-      if (!jBip) return null;
-      if (jBip === "J_Bip_C_Hips" && prop === "position") return null;
-
-      let values = track.values;
-      for (const [re, c] of CORRECTIONS) {
-        if (re.test(track.name)) {
-          values = new Float32Array(track.values);
-          const q = new THREE.Quaternion();
-          for (let i = 0; i < values.length; i += 4) {
-            q.set(values[i], values[i + 1], values[i + 2], values[i + 3]);
-            q.premultiply(c);
-            values[i] = q.x; values[i + 1] = q.y; values[i + 2] = q.z; values[i + 3] = q.w;
-          }
-          break;
-        }
-      }
-
-      const newName = `${jBip}.${prop}`;
-      const ctor = track.constructor as new (name: string, times: Float32Array, values: Float32Array) => THREE.KeyframeTrack;
-      return new ctor(newName, track.times, values);
-    }
-
     const animLoader = new FBXLoader();
     animLoader.load(
       resolvedAnimation,
       (animFbx) => {
         if (animFbx.animations.length === 0) return;
-        const tracks = animFbx.animations[0].tracks.flatMap((t) => {
-          const r = remapTrack(t);
-          return r ? [r] : [];
-        });
-        const clip = new THREE.AnimationClip("anim", -1, tracks);
-        const mixer = new THREE.AnimationMixer(scene);
-        mixer.clipAction(clip).play();
-        mixerRef.current = mixer;
+        const clip = animFbx.animations[0].clone();
+        for (const track of clip.tracks) {
+          // Strip mixamorig: prefix first
+          track.name = track.name.replace(/^mixamorig:?/i, "");
+          // Apply bone map if available: remap animation bone names to model bone names
+          if (boneMap) {
+            // Track name format: "BoneName.position" or "BoneName.quaternion"
+            const dotIdx = track.name.indexOf(".");
+            const boneName = dotIdx > -1 ? track.name.substring(0, dotIdx) : track.name;
+            const suffix = dotIdx > -1 ? track.name.substring(dotIdx) : "";
+            if (boneMap[boneName]) {
+              track.name = boneMap[boneName] + suffix;
+            }
+          }
+        }
+        try {
+          const mixer = new THREE.AnimationMixer(scene);
+          mixer.clipAction(clip).play();
+          mixerRef.current = mixer;
+        } catch { }
       },
       undefined,
-      () => { setError(true); onError?.(); },
+      () => { },
     );
     return () => { mixerRef.current?.stopAllAction(); mixerRef.current = null; };
   }, [scene, resolvedAnimation]);
 
-  useFrame((_, delta) => {
+  useFrame((state) => {
+    const delta = state.clock.getDelta();
+    mixerRef.current?.update(delta);
     if (!groupRef.current) return;
-    const t = performance.now() / 1000;
+    const t = state.clock.getElapsedTime();
     groupRef.current.position.y = Math.sin(t * 1.5) * 0.05 + (position?.[1] ?? 0);
     groupRef.current.rotation.y = Math.sin(t * 0.3) * 0.1;
-    mixerRef.current?.update(delta);
   });
 
   if (error) return null;
@@ -289,7 +282,7 @@ export function Avatar() {
   }
 
   if (config.type === "fbx" && config.modelPath) {
-    return <FbxAvatar modelPath={config.modelPath} scale={config.scale} position={config.position} animationPath={config.animationPath} onError={() => setLoadFailed(true)} />;
+    return <FbxAvatar modelPath={config.modelPath} scale={config.scale} position={config.position} animationPath={config.animationPath} texturePath={config.texturePath} boneMap={config.boneMap} onError={() => setLoadFailed(true)} />;
   }
 
   return <ProceduralAvatar />;
