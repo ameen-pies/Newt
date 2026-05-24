@@ -214,6 +214,18 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
         });
         console.log(`[Avatar] Bone names for ${modelPath}:`, boneNames);
 
+        // Log material names for texture mapping
+        const materialNames: string[] = [];
+        fbx.traverse((child) => {
+          if (child.type !== "SkinnedMesh") return;
+          const mesh = child as THREE.SkinnedMesh;
+          const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          for (const mat of materials) {
+            if (mat) materialNames.push(mat.name || mesh.name);
+          }
+        });
+        console.log(`[Avatar] Material names for ${modelPath}:`, [...new Set(materialNames)]);
+
         setScene(fbx);
       },
       undefined,
