@@ -147,7 +147,8 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
           if (lower.includes("eye")) return "m_eyes";
           if (lower.includes("nails")) return "m_nails";
           if (lower.includes("teeth") || lower.includes("tongue") || lower.includes("mouth")) return "m_mouth";
-          return null;
+          // Fallback for single-material models (combined textures)
+          return "m_body";
         }
 
         fbx.traverse((child) => {
@@ -225,6 +226,11 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
           }
         });
         console.log(`[Avatar] Material names for ${modelPath}:`, [...new Set(materialNames)]);
+
+        const box = new THREE.Box3().setFromObject(fbx);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        console.log(`[Avatar] ${modelPath} — center: (${center.x.toFixed(1)}, ${center.y.toFixed(1)}, ${center.z.toFixed(1)}) size: (${size.x.toFixed(1)}, ${size.y.toFixed(1)}, ${size.z.toFixed(1)})`);
 
         setScene(fbx);
       },

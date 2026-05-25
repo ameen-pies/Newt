@@ -1,5 +1,6 @@
 import { LUCY_BONE_MAP } from "./bone-maps/lucy";
 import { PINKDRESS_BONE_MAP } from "./bone-maps/pinkdress";
+import { OFFICE_WORKER_BONE_MAP } from "./bone-maps/office-worker";
 
 export interface CharacterConfig {
   id: string;
@@ -57,6 +58,19 @@ export const CHARACTERS: CharacterConfig[] = [
     boneMap: PINKDRESS_BONE_MAP,
     rotation: [Math.PI / 2, 0, 0],
     description: "Pink Dress (Daz3D)",
+  },
+  {
+    id: "office-worker",
+    name: "Office Worker",
+    type: "fbx",
+    modelPath: "/models/characters/office-worker.fbx",
+    scale: 0.01,
+    position: [0, 1, 0],
+    texturePath: "/textures/office-worker/",
+    animationPath: "/animations/idle.fbx",
+    boneMap: OFFICE_WORKER_BONE_MAP,
+    rotation: [0, 0, 0],
+    description: "Female Office Worker (CC3)",
   },
   // ─────────────────────────────────────────────────
   // ★ To add a custom character:
