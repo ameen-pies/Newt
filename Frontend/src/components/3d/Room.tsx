@@ -69,7 +69,13 @@ function GltfRoom({ modelPath, scale, position, onError }: { modelPath: string; 
     const loader = new GLTFLoader();
     loader.load(
       modelPath,
-      (gltf) => setScene(gltf.scene),
+      (gltf) => {
+        const box = new THREE.Box3().setFromObject(gltf.scene);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        console.log(`[Room] ${modelPath} — center: (${center.x.toFixed(1)}, ${center.y.toFixed(1)}, ${center.z.toFixed(1)}) size: (${size.x.toFixed(1)}, ${size.y.toFixed(1)}, ${size.z.toFixed(1)})`);
+        setScene(gltf.scene);
+      },
       undefined,
       () => { setError(true); onError?.(); },
     );

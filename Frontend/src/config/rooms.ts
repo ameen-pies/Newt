@@ -52,13 +52,13 @@ export const ROOMS: RoomConfig[] = [
     },
   },
   {
-    id: "livingroom",
-    name: "Living Room",
+    id: "hospital",
+    name: "Hospital Room",
     type: "gltf",
-    modelPath: "/models/rooms/livingroom.glb",
-    scale: 0.5,
-    position: [0, -0.5, 0],
-    description: "Wabisabi living room",
+    modelPath: "/models/rooms/hospital.glb",
+    scale: 0.04,
+    position: [-4, 0.5, 4],
+    description: "Hospital room environment",
   },
   // ─────────────────────────────────────────────────
   // ★ To add a custom room:
