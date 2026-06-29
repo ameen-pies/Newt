@@ -1,5 +1,4 @@
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
 import { Avatar } from "./Avatar";
 
 export function Scene() {
@@ -25,17 +24,6 @@ export function Scene() {
 
       {/* Scene objects */}
       <Avatar />
-
-      {/* Controls */}
-      <OrbitControls
-        enablePan={false}
-        enableZoom={true}
-        minDistance={3}
-        maxDistance={8}
-        minPolarAngle={Math.PI / 6}
-        maxPolarAngle={Math.PI / 2}
-        target={[0, 1.2, 0]}
-      />
     </Canvas>
   );
 }
