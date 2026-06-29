@@ -6,6 +6,7 @@ import { VRMLoaderPlugin } from "@pixiv/three-vrm";
 import { useAppStore } from "@/stores/app";
 import { CHARACTERS } from "@/config/characters";
 import { VrmAvatar } from "./VrmAvatar";
+import { useCursorFollow } from "@/hooks/useCursorFollow";
 
 function ProceduralAvatar() {
   const groupRef = useRef<THREE.Group>(null);
@@ -15,6 +16,8 @@ function ProceduralAvatar() {
   const { cognitiveState, isThinking } = useAppStore();
   const { camera } = useThree();
   const headTargetQuat = useMemo(() => new THREE.Quaternion(), []);
+
+  useCursorFollow(headRef);
 
   const bodyColor = useMemo(() => new THREE.Color("#2a2a3e"), []);
   const accentColor = useMemo(() => new THREE.Color("#6366f1"), []);
@@ -82,10 +85,13 @@ function ProceduralAvatar() {
 
 function GltfAvatar({ modelPath, scale, position, onError }: { modelPath: string; scale?: number; position?: [number, number, number]; onError?: () => void }) {
   const groupRef = useRef<THREE.Group>(null);
+  const innerRef = useRef<THREE.Group>(null);
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const [error, setError] = useState(false);
   const { camera } = useThree();
   const targetQuat = useMemo(() => new THREE.Quaternion(), []);
+
+  useCursorFollow(innerRef, { followWeight: 0.25 });
 
   useEffect(() => {
     setScene(null);
@@ -118,7 +124,9 @@ function GltfAvatar({ modelPath, scale, position, onError }: { modelPath: string
 
   return (
     <group ref={groupRef} position={[position?.[0] ?? 0, position?.[1] ?? 0, position?.[2] ?? 0]} scale={scale ?? 1}>
-      <primitive object={scene} />
+      <group ref={innerRef}>
+        <primitive object={scene} />
+      </group>
     </group>
   );
 }
@@ -137,6 +145,8 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
     if (rotation) return new THREE.Quaternion().setFromEuler(new THREE.Euler(rotation[0], rotation[1], rotation[2]));
     return new THREE.Quaternion();
   }, [rotation]);
+
+  useCursorFollow(innerRef, { followWeight: 0.25 });
 
   useEffect(() => {
     setScene(null);

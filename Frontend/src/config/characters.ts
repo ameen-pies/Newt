@@ -65,7 +65,7 @@ export const CHARACTERS: CharacterConfig[] = [
     type: "fbx",
     modelPath: "/models/characters/office-worker.fbx",
     scale: 0.01,
-    position: [-0.3, 1.5, 3],
+    position: [-0.3, 1.1, 3],
     texturePath: "/textures/office-worker/",
     animationPath: "/animations/idle.fbx",
     boneMap: OFFICE_WORKER_BONE_MAP,
