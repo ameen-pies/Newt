@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { GLTFLoader, FBXLoader } from "three-stdlib";
 import { VRMLoaderPlugin } from "@pixiv/three-vrm";
@@ -13,6 +13,8 @@ function ProceduralAvatar() {
   const leftEyeRef = useRef<THREE.Mesh>(null);
   const rightEyeRef = useRef<THREE.Mesh>(null);
   const { cognitiveState, isThinking } = useAppStore();
+  const { camera } = useThree();
+  const headTargetQuat = useMemo(() => new THREE.Quaternion(), []);
 
   const bodyColor = useMemo(() => new THREE.Color("#2a2a3e"), []);
   const accentColor = useMemo(() => new THREE.Color("#6366f1"), []);
@@ -24,11 +26,13 @@ function ProceduralAvatar() {
     groupRef.current.position.y = Math.sin(t * 1.5) * 0.05 + 1.0;
 
     if (headRef.current) {
-      headRef.current.rotation.y = Math.sin(t * 0.3) * 0.2;
-      headRef.current.rotation.x = Math.sin(t * 0.5) * 0.05;
-      if (isThinking) {
-        headRef.current.rotation.z = Math.sin(t * 2) * 0.1;
-      }
+      const headWorldPos = new THREE.Vector3();
+      headRef.current.getWorldPosition(headWorldPos);
+      const dir = new THREE.Vector3().subVectors(camera.position, headWorldPos).normalize();
+      const yaw = Math.atan2(dir.x, dir.z);
+      const pitch = Math.asin(THREE.MathUtils.clamp(dir.y, -0.5, 0.5));
+      headTargetQuat.setFromEuler(new THREE.Euler(pitch * 0.6, yaw * 0.5, isThinking ? Math.sin(t * 2) * 0.1 : 0));
+      headRef.current.quaternion.slerp(headTargetQuat, 0.05);
     }
 
     if (leftEyeRef.current && rightEyeRef.current) {
@@ -80,6 +84,8 @@ function GltfAvatar({ modelPath, scale, position, onError }: { modelPath: string
   const groupRef = useRef<THREE.Group>(null);
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const [error, setError] = useState(false);
+  const { camera } = useThree();
+  const targetQuat = useMemo(() => new THREE.Quaternion(), []);
 
   useEffect(() => {
     setScene(null);
@@ -98,7 +104,13 @@ function GltfAvatar({ modelPath, scale, position, onError }: { modelPath: string
     if (!groupRef.current) return;
     const t = state.clock.getElapsedTime();
     groupRef.current.position.y = Math.sin(t * 1.5) * 0.05 + (position?.[1] ?? 0);
-    groupRef.current.rotation.y = Math.sin(t * 0.3) * 0.1;
+
+    const worldPos = new THREE.Vector3();
+    groupRef.current.getWorldPosition(worldPos);
+    const dir = new THREE.Vector3().subVectors(camera.position, worldPos).normalize();
+    const yaw = Math.atan2(dir.x, dir.z);
+    targetQuat.setFromEuler(new THREE.Euler(0, yaw, 0));
+    groupRef.current.quaternion.slerp(targetQuat, 0.03);
   });
 
   if (error) return null;
@@ -113,11 +125,18 @@ function GltfAvatar({ modelPath, scale, position, onError }: { modelPath: string
 
 function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, boneMap, rotation, onError }: { modelPath: string; scale?: number; position?: [number, number, number]; animationPath?: string; texturePath?: string; boneMap?: Record<string, string>; rotation?: [number, number, number]; onError?: () => void }) {
   const groupRef = useRef<THREE.Group>(null);
+  const innerRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const [scene, setScene] = useState<THREE.Group | null>(null);
   const [error, setError] = useState(false);
   const testAnimation = useAppStore((s) => s.testAnimation);
   const resolvedAnimation = testAnimation ?? animationPath;
+  const { camera } = useThree();
+  const targetQuat = useMemo(() => new THREE.Quaternion(), []);
+  const staticRotation = useMemo(() => {
+    if (rotation) return new THREE.Quaternion().setFromEuler(new THREE.Euler(rotation[0], rotation[1], rotation[2]));
+    return new THREE.Quaternion();
+  }, [rotation]);
 
   useEffect(() => {
     setScene(null);
@@ -130,7 +149,6 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
         const textureLoader = new THREE.TextureLoader();
         const texBase = texturePath ?? "/textures/";
 
-        // Match material name to texture prefix
         function getTexturePrefix(name: string): string | null {
           const lower = (name || "").toLowerCase();
           if (lower.includes("skin_body") || (lower.includes("body") && lower.includes("skin"))) return "m_body";
@@ -147,7 +165,6 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
           if (lower.includes("eye")) return "m_eyes";
           if (lower.includes("nails")) return "m_nails";
           if (lower.includes("teeth") || lower.includes("tongue") || lower.includes("mouth")) return "m_mouth";
-          // Fallback for single-material models (combined textures)
           return "m_body";
         }
 
@@ -161,7 +178,6 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
             if (!mat) continue;
             const prefix = getTexturePrefix(mat.name || mesh.name);
 
-            // Convert to StandardMaterial
             let standardMat: THREE.MeshStandardMaterial;
             if (mat instanceof THREE.MeshStandardMaterial) {
               standardMat = mat;
@@ -184,18 +200,15 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
             }
 
             if (prefix) {
-              // Load diffuse
               textureLoader.load(texBase + prefix + "_diffuse.png", (tex) => {
                 standardMat.map = tex;
                 standardMat.color.set(0xffffff);
                 standardMat.needsUpdate = true;
               });
-              // Load normal map
               textureLoader.load(texBase + prefix + "_normal.png", (tex) => {
                 standardMat.normalMap = tex;
                 standardMat.needsUpdate = true;
               });
-              // Load roughness map
               textureLoader.load(texBase + prefix + "_roughness.png", (tex) => {
                 standardMat.roughnessMap = tex;
                 standardMat.needsUpdate = true;
@@ -208,14 +221,12 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
           }
         });
 
-        // Log bone names for bone map creation
         const boneNames: string[] = [];
         fbx.traverse((child) => {
           if (child.type === "Bone") boneNames.push(child.name);
         });
         console.log(`[Avatar] Bone names for ${modelPath}:`, boneNames);
 
-        // Log material names for texture mapping
         const materialNames: string[] = [];
         fbx.traverse((child) => {
           if (child.type !== "SkinnedMesh") return;
@@ -250,22 +261,16 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
       (animFbx) => {
         if (animFbx.animations.length === 0) return;
         const clip = animFbx.animations[0].clone();
-        // Drop position/scale tracks — Mixamo Hips.position moves model off-screen
         clip.tracks = clip.tracks.filter((track) => track.name.endsWith(".quaternion"));
         for (const track of clip.tracks) {
-          // Strip mixamorig: prefix first
           track.name = track.name.replace(/^mixamorig:?/i, "");
-          // Apply bone map if available: remap animation bone names to model bone names
           if (boneMap) {
-            // Track name format: "BoneName.quaternion"
             const dotIdx = track.name.indexOf(".");
             const boneName = dotIdx > -1 ? track.name.substring(0, dotIdx) : track.name;
             const suffix = dotIdx > -1 ? track.name.substring(dotIdx) : "";
             if (boneMap[boneName]) {
               const mapped = boneMap[boneName];
               track.name = mapped + suffix;
-              // CC3 finger bones: Mixamo curls around X, CC3 curls around Z
-              // Swap x↔z quaternion components to redirect curl from sideways to forward
               const isFinger = /Thumb|Index|Mid|Ring|Pinky/.test(mapped);
               if (isFinger && mapped.startsWith("CC_Base_")) {
                 const isLeft = /CC_Base_L_/.test(mapped);
@@ -274,11 +279,11 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
                   const ox = vals[i];
                   const oz = vals[i + 2];
                   if (isLeft) {
-                    vals[i] = oz;        // x = old z
-                    vals[i + 2] = -ox;   // z = -old x
+                    vals[i] = oz;
+                    vals[i + 2] = -ox;
                   } else {
-                    vals[i] = -oz;       // x = -old z
-                    vals[i + 2] = ox;    // z = old x
+                    vals[i] = -oz;
+                    vals[i + 2] = ox;
                   }
                 }
               }
@@ -299,14 +304,25 @@ function FbxAvatar({ modelPath, scale, position, animationPath, texturePath, bon
 
   useFrame((_, delta) => {
     mixerRef.current?.update(delta);
+
+    if (!groupRef.current) return;
+    const worldPos = new THREE.Vector3();
+    groupRef.current.getWorldPosition(worldPos);
+    const dir = new THREE.Vector3().subVectors(camera.position, worldPos).normalize();
+    const yaw = Math.atan2(dir.x, dir.z);
+    targetQuat.copy(staticRotation);
+    targetQuat.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, yaw, 0)));
+    groupRef.current.quaternion.slerp(targetQuat, 0.03);
   });
 
   if (error) return null;
   if (!scene) return null;
 
   return (
-    <group ref={groupRef} position={[position?.[0] ?? 0, position?.[1] ?? 0, position?.[2] ?? 0]} rotation={rotation ?? [0, 0, 0]} scale={scale ?? 1}>
-      <primitive object={scene} />
+    <group ref={groupRef} position={[position?.[0] ?? 0, position?.[1] ?? 0, position?.[2] ?? 0]} scale={scale ?? 1}>
+      <group ref={innerRef} rotation={rotation ?? [0, 0, 0]}>
+        <primitive object={scene} />
+      </group>
     </group>
   );
 }

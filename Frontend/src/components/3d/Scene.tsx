@@ -1,15 +1,13 @@
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { Avatar } from "./Avatar";
-import { Room } from "./Room";
 
 export function Scene() {
   return (
     <Canvas
       camera={{ position: [0, 2, 5], fov: 50 }}
-      shadows
-      gl={{ antialias: true, alpha: false }}
-      style={{ background: "#0a0a0f" }}
+      gl={{ antialias: true, alpha: true }}
+      style={{ background: "transparent" }}
     >
       {/* Lighting */}
       <ambientLight intensity={0.5} />
@@ -25,11 +23,7 @@ export function Scene() {
       />
       <hemisphereLight args={["#6366f1", "#0a0a1a", 0.4]} />
 
-      {/* Environment */}
-      <fog attach="fog" args={["#050510", 8, 20]} />
-
       {/* Scene objects */}
-      <Room />
       <Avatar />
 
       {/* Controls */}

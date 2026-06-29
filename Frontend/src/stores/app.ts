@@ -35,11 +35,9 @@ interface AppState {
   isSetup: boolean;
   avatar: AvatarConfig;
   voicePersona: string;
-  roomStyle: string;
 
   // Modular asset selections
   characterId: string;
-  roomModelId: string;
 
   // Custom cloned voices
   customVoices: ClonedVoice[];
@@ -65,9 +63,7 @@ interface AppState {
   setSetup: (
     avatar: AvatarConfig,
     voice: string,
-    room: string,
     characterId?: string,
-    roomModelId?: string
   ) => void;
   addMessage: (msg: ChatMessage) => void;
   setThinking: (v: boolean) => void;
@@ -77,7 +73,6 @@ interface AppState {
   setWsConnected: (v: boolean) => void;
   addCustomVoice: (voice: ClonedVoice) => void;
   setCharacterId: (id: string) => void;
-  setRoomModelId: (id: string) => void;
   setTestAnimation: (path: string | null) => void;
 }
 
@@ -91,9 +86,7 @@ export const useAppStore = create<AppState>((set) => ({
     outfit: "casual",
   },
   voicePersona: "dynamic",
-  roomStyle: "cyberpunk",
   characterId: "newt-default",
-  roomModelId: "cyberpunk",
   customVoices: [],
   messages: [],
   isThinking: false,
@@ -109,14 +102,12 @@ export const useAppStore = create<AppState>((set) => ({
   isScreenSharing: false,
   wsConnected: false,
 
-  setSetup: (avatar, voice, room, characterId, roomModelId) =>
+  setSetup: (avatar, voice, characterId) =>
     set({
       isSetup: true,
       avatar,
       voicePersona: voice,
-      roomStyle: room,
       characterId: characterId ?? "newt-default",
-      roomModelId: roomModelId ?? "cyberpunk",
     }),
 
   addMessage: (msg) =>
@@ -130,6 +121,5 @@ export const useAppStore = create<AppState>((set) => ({
   addCustomVoice: (voice) =>
     set((state) => ({ customVoices: [...state.customVoices, voice] })),
   setCharacterId: (id) => set({ characterId: id }),
-  setRoomModelId: (id) => set({ roomModelId: id }),
   setTestAnimation: (path) => set({ testAnimation: path }),
 }));

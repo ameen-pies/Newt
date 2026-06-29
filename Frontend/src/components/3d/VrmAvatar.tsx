@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { GLTFLoader } from "three-stdlib";
 import { VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
@@ -10,8 +10,10 @@ export function VrmAvatar({ modelPath, scale = 1, animationPath, onError }: { mo
   const groupRef = useRef<THREE.Group>(null);
   const mixerRef = useRef<THREE.AnimationMixer | null>(null);
   const { isThinking } = useAppStore();
+  const { camera } = useThree();
   const [vrm, setVrm] = useState<any>(null);
   const [error, setError] = useState(false);
+  const lookAtTarget = useRef(new THREE.Vector3(0, 2, 5));
 
   useEffect(() => {
     setVrm(null);
@@ -51,7 +53,12 @@ export function VrmAvatar({ modelPath, scale = 1, animationPath, onError }: { mo
     if (!groupRef.current || !vrm) return;
     const t = state.clock.getElapsedTime();
     groupRef.current.position.y = Math.sin(t * 1.5) * 0.05;
-    groupRef.current.rotation.y = Math.sin(t * 0.3) * 0.1;
+
+    if (vrm.lookAt) {
+      lookAtTarget.current.copy(camera.position);
+      vrm.lookAt.target = lookAtTarget.current;
+    }
+
     vrm.update(t);
     mixerRef.current?.update(delta);
   });

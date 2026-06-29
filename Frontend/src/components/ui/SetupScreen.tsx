@@ -1,7 +1,6 @@
 import { useState, useRef } from "react";
 import { useAppStore, AvatarConfig } from "@/stores/app";
 import { CHARACTERS } from "@/config/characters";
-import { ROOMS } from "@/config/rooms";
 import { BUILTIN_VOICES } from "@/config/voices";
 import { API_URL } from "@/lib/api";
 
@@ -11,9 +10,7 @@ export function SetupScreen() {
   const [cloning, setCloning] = useState(false);
 
   const [voice, setVoice] = useState("dynamic");
-  const [room, setRoom] = useState("cyberpunk");
   const [characterId, setCharacterId] = useState("newt-default");
-  const [roomModelId, setRoomModelId] = useState("cyberpunk");
   const [avatar, setAvatar] = useState<AvatarConfig>({
     body_type: "default",
     skin_color: "#f5d0a9",
@@ -34,7 +31,7 @@ export function SetupScreen() {
   ];
 
   const handleStart = () => {
-    setSetup(avatar, voice, room, characterId, roomModelId);
+    setSetup(avatar, voice, characterId);
   };
 
   const handleVoiceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,27 +159,6 @@ export function SetupScreen() {
             >
               {cloning ? "Cloning voice..." : "+ Upload voice sample to clone"}
             </button>
-          </div>
-        </div>
-
-        {/* ── Room Environment ── */}
-        <div className="mb-6">
-          <label className="text-sm text-neuro-muted mb-2 block">Room Environment</label>
-          <div className="grid grid-cols-2 gap-2">
-            {ROOMS.map((opt) => (
-              <button
-                key={opt.id}
-                onClick={() => setRoomModelId(opt.id)}
-                className={`px-3 py-2 rounded-lg text-sm border transition-all text-left ${
-                  roomModelId === opt.id
-                    ? "border-neuro-accent bg-neuro-accent/20 text-neuro-accent"
-                    : "border-neuro-border text-neuro-muted hover:border-neuro-accent/50"
-                }`}
-              >
-                <div className="font-medium">{opt.name}</div>
-                <div className="text-xs opacity-60">{opt.description}</div>
-              </button>
-            ))}
           </div>
         </div>
 
